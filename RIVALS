@@ -290,7 +290,7 @@ end
 -- MAIN EXECUTION (DITO NAGSISIMULA ANG UI)
 -----------------------------------------------------------
 
-local Window = Lib:New("CYBER UI")
+local Window = Lib:New("Stan ui")
 
 -- TAB 1: COMBAT
 local Combat = Window:CreateTab("Combat")
