@@ -1,0 +1,329 @@
+local Lib = {}
+local P = game:GetService("Players")
+local RS = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local TS = game:GetService("TweenService")
+local WS = game:GetService("Workspace")
+local LP = P.LocalPlayer
+local CAM = WS.CurrentCamera
+
+-- COLORS
+local C = {
+    BG = Color3.fromRGB(10,10,15),
+    SEC = Color3.fromRGB(20,20,30),
+    ACC = Color3.fromRGB(0,200,255),
+    ACCD = Color3.fromRGB(0,150,200),
+    TXT = Color3.fromRGB(255,255,255),
+    TXTD = Color3.fromRGB(150,150,150),
+    BRD = Color3.fromRGB(0,180,230)
+}
+
+-- SETTINGS
+local AimSet = {On=false, FOV=200, ShowFOV=true, Wall=true, Team=false, Smooth=0.3}
+local ESPSet = {On=false, Col=Color3.fromRGB(255,0,0)}
+local MoveSet = {NoClip=false, Fly=false, Speed=50}
+local Keybinds = {UIToggle="RightShift", Aimbot="MouseButton2", Fly="F", NoClip="N"}
+
+-- CONNECTIONS & CLEANUP
+local Conns = {}
+local function AddC(n,c) if Conns[n] then Conns[n]:Disconnect() end Conns[n]=c end
+local function RemC(n) if Conns[n] then Conns[n]:Disconnect() Conns[n]=nil end end
+
+-- UTILITY
+local function Make(c,p) local o=Instance.new(c) for k,v in pairs(p) do o[k]=v end return o end
+local function Tw(o,p,d,s,di) return TS:Create(o,TweenInfo.new(d or .3,s or Enum.EasingStyle.Quad,di or Enum.EasingDirection.Out),p):Play() end
+
+-- FOV CIRCLE
+local FOV = Drawing.new("Circle")
+FOV.Thickness=2 FOV.NumSides=64 FOV.Radius=200 FOV.Filled=false
+FOV.Color=Color3.new(0,.78,1) FOV.Transparency=.8 FOV.Visible=false
+
+-- AIMBOT SYSTEM
+local function GetTarget()
+    local t,d = nil,AimSet.FOV
+    for _,p in pairs(P:GetPlayers()) do
+        if p~=LP and p.Character and p.Character:FindFirstChild("Head") then
+            if AimSet.Team and p.Team==LP.Team then continue end
+            local h=p.Character.Head
+            local sp,os=CAM:WorldToViewportPoint(h.Position)
+            if os then
+                local mp=UIS:GetMouseLocation()
+                local dis=(Vector2.new(sp.X,sp.Y)-mp).Magnitude
+                if dis<d then
+                    if AimSet.Wall then
+                        local rp=RaycastParams.new()
+                        rp.FilterType=Enum.RaycastFilterType.Exclude
+                        rp.FilterDescendantsInstances={LP.Character}
+                        local r=WS:Raycast(CAM.CFrame.Position,(h.Position-CAM.CFrame.Position).Unit*500,rp)
+                        if not r or r.Instance:IsDescendantOf(p.Character) then
+                            t=p d=dis
+                        end
+                    else t=p d=dis end
+                end
+            end
+        end
+    end
+    return t
+end
+
+local function StartAim()
+    if Conns["Aim"] then return end
+    AddC("Aim",RS.RenderStepped:Connect(function()
+        if AimSet.On and UIS:IsMouseButtonPressed(Enum.UserInputType[Keybinds.Aimbot]) then
+            local tg=GetTarget()
+            if tg and tg.Character and tg.Character:FindFirstChild("Head") then
+                local h=tg.Character.Head
+                CAM.CFrame=CAM.CFrame:Lerp(CFrame.new(CAM.CFrame.Position,h.Position),AimSet.Smooth)
+            end
+        end
+    end))
+end
+
+local function StopAim()
+    RemC("Aim")
+end
+
+-- ESP SYSTEM
+local ESPObj = {}
+local ESPConns = {}
+
+local function RemoveESP(p)
+    if ESPObj[p] then
+        if ESPObj[p].H then ESPObj[p].H:Destroy() end
+        ESPObj[p]=nil
+    end
+    if ESPConns[p] then
+        for _,c in pairs(ESPConns[p]) do pcall(function() c:Disconnect() end) end
+        ESPConns[p]=nil
+    end
+end
+
+local function MakeESP(p)
+    if not p.Character or ESPObj[p] then return end
+    RemoveESP(p)
+    
+    local h=Make("Highlight",{
+        Adornee=p.Character,
+        FillColor=ESPSet.Col,
+        OutlineColor=ESPSet.Col,
+        FillTransparency=.5,
+        OutlineTransparency=0,
+        Parent=p.Character
+    })
+    ESPObj[p]={H=h}
+    ESPConns[p]={}
+    
+    local hum=p.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        table.insert(ESPConns[p],hum.Died:Connect(function() RemoveESP(p) end))
+    end
+end
+
+local function StartESP()
+    for _,p in pairs(P:GetPlayers()) do
+        if p~=LP then
+            if p.Character then MakeESP(p) end
+            table.insert(ESPConns,p.CharacterAdded:Connect(function()
+                if ESPSet.On then wait(.1) MakeESP(p) end
+            end))
+        end
+    end
+    AddC("ESP",P.PlayerAdded:Connect(function(p)
+        table.insert(ESPConns,p.CharacterAdded:Connect(function()
+            if ESPSet.On then wait(.1) MakeESP(p) end
+        end))
+    end))
+end
+
+local function StopESP()
+    for p,_ in pairs(ESPObj) do RemoveESP(p) end
+    RemC("ESP")
+end
+
+-- NOCLIP
+local function StartNC()
+    if Conns["NC"] then return end
+    AddC("NC",RS.Stepped:Connect(function()
+        if MoveSet.NoClip and LP.Character then
+            for _,pt in pairs(LP.Character:GetDescendants()) do
+                if pt:IsA("BasePart") then pt.CanCollide=false end
+            end
+        end
+    end))
+end
+
+local function StopNC()
+    RemC("NC")
+    if LP.Character then
+        for _,pt in pairs(LP.Character:GetDescendants()) do
+            if pt:IsA("BasePart") then pt.CanCollide=true end
+        end
+    end
+end
+
+-- FLY (MODERN)
+local FBV,FBG
+local function StartFly()
+    if Conns["Fly"] or not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then return end
+    local rt=LP.Character.HumanoidRootPart
+    local hum=LP.Character:FindFirstChildOfClass("Humanoid")
+    
+    if hum then
+        for _,s in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+            pcall(function() hum:SetStateEnabled(s,false) end)
+        end
+        hum:ChangeState(Enum.HumanoidStateType.Swimming)
+    end
+    
+    FBV=Make("BodyVelocity",{Velocity=Vector3.new(0,0,0),MaxForce=Vector3.new(9e9,9e9,9e9),Parent=rt})
+    FBG=Make("BodyGyro",{MaxTorque=Vector3.new(9e9,9e9,9e9),P=9e4,Parent=rt})
+    
+    AddC("Fly",RS.RenderStepped:Connect(function()
+        if MoveSet.Fly and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+            local sp=MoveSet.Speed
+            local dir=Vector3.new()
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir=dir+(CAM.CFrame.LookVector*sp) end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir=dir-(CAM.CFrame.LookVector*sp) end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then dir=dir-(CAM.CFrame.RightVector*sp) end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then dir=dir+(CAM.CFrame.RightVector*sp) end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir=dir+Vector3.new(0,sp,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then dir=dir-Vector3.new(0,sp,0) end
+            FBV.Velocity=dir
+            FBG.CFrame=CAM.CFrame
+        end
+    end))
+end
+
+local function StopFly()
+    RemC("Fly")
+    if FBV then FBV:Destroy() FBV=nil end
+    if FBG then FBG:Destroy() FBG=nil end
+    if LP.Character then
+        local hum=LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            for _,s in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+                pcall(function() hum:SetStateEnabled(s,true) end)
+            end
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+    end
+end
+
+-- FOV UPDATE
+AddC("FOVU",RS.RenderStepped:Connect(function()
+    local mp=UIS:GetMouseLocation()
+    FOV.Position=mp
+    FOV.Radius=AimSet.FOV
+    FOV.Visible=AimSet.ShowFOV and AimSet.On
+    FOV.Color=C.ACC
+end))
+
+-- UI LIBRARY DEFINITION
+function Lib:New(t)
+    local UI={Tabs={},CurTab=nil,Vis=true,UIElements={}}
+    UI.SG=Make("ScreenGui",{Name="CyberUI",Parent=game.CoreGui,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,ResetOnSpawn=false})
+    local Con=Make("Frame",{Parent=UI.SG,BackgroundTransparency=1,Position=UDim2.new(.5,0,.5,0),Size=UDim2.new(0,800,0,600),AnchorPoint=Vector2.new(.5,.5)})
+    Make("UIScale",{Parent=Con})
+    UI.M=Make("Frame",{Parent=Con,BackgroundColor3=C.BG,Size=UDim2.new(1,0,1,0),ClipsDescendants=true})
+    Make("UIStroke",{Color=C.BRD,Thickness=2,Parent=UI.M})
+    
+    local drag,dS,sP
+    UI.M.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true dS=i.Position sP=Con.Position end end)
+    UI.M.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end end)
+    UIS.InputChanged:Connect(function(i) if drag and i.UserInputType==Enum.UserInputType.MouseMovement then local d=i.Position-dS Con.Position=UDim2.new(sP.X.Scale,sP.X.Offset+d.X,sP.Y.Scale,sP.Y.Offset+d.Y) end end)
+    
+    UIS.InputBegan:Connect(function(i)
+        if i.KeyCode==Enum.KeyCode[Keybinds.UIToggle] then
+            UI.Vis=not UI.Vis
+            Con.Visible = UI.Vis
+        end
+    end)
+    
+    local TB=Make("Frame",{Parent=UI.M,BackgroundColor3=C.SEC,Size=UDim2.new(1,0,0,60)})
+    local PF=Make("Frame",{Parent=TB,BackgroundColor3=C.BG,Position=UDim2.new(0,10,.5,-20),Size=UDim2.new(0,40,0,40)})
+    Make("ImageLabel",{Parent=PF,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Image="rbxthumb://type=AvatarHeadShot&id="..LP.UserId.."&w=150&h=150"})
+    
+    local TC=Make("Frame",{Parent=TB,BackgroundTransparency=1,Position=UDim2.new(0,60,0,0),Size=UDim2.new(1,-120,1,0)})
+    Make("UIListLayout",{Parent=TC,FillDirection=Enum.FillDirection.Horizontal})
+    UI.CA=Make("Frame",{Parent=UI.M,BackgroundTransparency=1,Position=UDim2.new(0,0,0,60),Size=UDim2.new(1,0,1,-60)})
+
+    function UI:CreateTab(n)
+        local Tab={}
+        local TBtn=Make("TextButton",{Parent=TC,BackgroundColor3=C.SEC,Size=UDim2.new(0,120,1,0),Font=Enum.Font.GothamBold,Text=n:upper(),TextColor3=C.TXTD,TextSize=13})
+        local Cont=Make("ScrollingFrame",{Parent=UI.CA,BackgroundTransparency=1,Position=UDim2.new(0,20,0,20),Size=UDim2.new(1,-40,1,-40),CanvasSize=UDim2.new(0,0,0,0),Visible=false,ScrollBarThickness=4})
+        local CL=Make("UIListLayout",{Parent=Cont,Padding=UDim.new(0,10)})
+        
+        TBtn.MouseButton1Click:Connect(function()
+            for _,tb in pairs(UI.Tabs) do tb.Content.Visible=false tb.Button.TextColor3=C.TXTD end
+            Cont.Visible=true TBtn.TextColor3=C.ACC UI.CurTab=n
+        end)
+
+        function Tab:Toggle(tx,df,cb)
+            local st=df or false
+            local TF=Make("Frame",{Parent=Cont,BackgroundColor3=C.SEC,Size=UDim2.new(1,0,0,45)})
+            local Lbl=Make("TextLabel",{Parent=TF,BackgroundTransparency=1,Position=UDim2.new(0,15,0,0),Size=UDim2.new(1,-80,1,0),Font=Enum.Font.Gotham,Text=tx,TextColor3=C.TXT,TextSize=14,TextXAlignment=0})
+            local Btn=Make("TextButton",{Parent=TF,BackgroundTransparency=1,Size=UDim2.new(1,0,1,0),Text=""})
+            Btn.MouseButton1Click:Connect(function() st=not st if cb then cb(st) end Lbl.TextColor3 = st and C.ACC or C.TXT end)
+            return TF
+        end
+
+        function Tab:Slider(tx,mn,mx,df,cb)
+            local SF=Make("Frame",{Parent=Cont,BackgroundColor3=C.SEC,Size=UDim2.new(1,0,0,60)})
+            local Lbl=Make("TextLabel",{Parent=SF,Text=tx,Size=UDim2.new(1,0,0,30),TextColor3=C.TXT,BackgroundTransparency=1})
+            local Tr=Make("Frame",{Parent=SF,Size=UDim2.new(1,-30,0,5),Position=UDim2.new(0,15,0,40),BackgroundColor3=C.BG})
+            local Fl=Make("Frame",{Parent=Tr,Size=UDim2.new((df-mn)/(mx-mn),0,1,0),BackgroundColor3=C.ACC})
+            UIS.InputChanged:Connect(function(i)
+                if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                    local ps=math.clamp((UIS:GetMouseLocation().X-Tr.AbsolutePosition.X)/Tr.AbsoluteSize.X,0,1)
+                    Fl.Size=UDim2.new(ps,0,1,0) cb(math.floor(mn+(mx-mn)*ps))
+                end
+            end)
+        end
+        
+        UI.Tabs[n]=Tab
+        return Tab
+    end
+    return UI
+end
+
+-----------------------------------------------------------
+-- MAIN EXECUTION (DITO NAGSISIMULA ANG UI)
+-----------------------------------------------------------
+
+local Window = Lib:New("CYBER UI")
+
+-- TAB 1: COMBAT
+local Combat = Window:CreateTab("Combat")
+Combat:Toggle("Enable Aimbot", false, function(v)
+    AimSet.On = v
+    if v then StartAim() else StopAim() end
+end)
+Combat:Slider("Aimbot Smoothness", 1, 10, 3, function(v)
+    AimSet.Smooth = v/10
+end)
+Combat:Slider("Aimbot FOV", 50, 500, 200, function(v)
+    AimSet.FOV = v
+end)
+
+-- TAB 2: VISUALS
+local Visuals = Window:CreateTab("Visuals")
+Visuals:Toggle("Player ESP", false, function(v)
+    ESPSet.On = v
+    if v then StartESP() else StopESP() end
+end)
+
+-- TAB 3: MOVEMENT
+local Movement = Window:CreateTab("Movement")
+Movement:Toggle("Fly Mode", false, function(v)
+    MoveSet.Fly = v
+    if v then StartFly() else StopFly() end
+end)
+Movement:Toggle("NoClip", false, function(v)
+    MoveSet.NoClip = v
+    if v then StartNC() else StopNC() end
+end)
+Movement:Slider("Fly Speed", 16, 300, 50, function(v)
+    MoveSet.Speed = v
+end)
+
+print("CyberUI Loaded Successfully!")
