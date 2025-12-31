@@ -1,1 +1,8 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/jaypee-138/SCRIPT/refs/heads/main/RIVALS"))()
+loadstring(game:HttpGet("https://antiskidbysevic.vercel.app/raw/67f699931eb736045350c77642ef1083"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-Keyless-4479-Hub-Aimbot-ESP-Silent-Aim-and-More-79895"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-OP-Roblox-Gl*-Wrap-Script-KEYLESS-61102"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-Wallbang-Desync-Anti-Hit-LegitBot-RageBot-79262"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-SILENT-AIM-MOBILE-SUPPORTED-ESP-OP-79624"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-No-Key-PEPEHOOK-Rage-Legit-79366"))()
+loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-Atherhub-Wallbang-Desync-Anti-Hit-LegitBot-RageBot-76091"))()
