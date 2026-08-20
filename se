@@ -35,22 +35,14 @@ local Running = false
 local Finished = false
 local CurrentLocation = 1
 local CurrentStatus = "Stopped"
-
 local SettingsOpen = false
 local MovementToken = 0
 local WaitingForKey = nil
-
-local COMPACT_SIZE = UDim2.fromOffset(245, 135)
-local COMPACT_POSITION = UDim2.new(0, 20, 0.5, -67)
-
-local EXPANDED_SIZE = UDim2.fromOffset(300, 390)
-local EXPANDED_POSITION = UDim2.new(0.5, -150, 0.5, -195)
 
 local function setupCharacter(character)
 	Character = character
 	Humanoid = character:WaitForChild("Humanoid")
 	RootPart = character:WaitForChild("HumanoidRootPart")
-
 	Running = false
 	Finished = false
 	CurrentLocation = 1
@@ -61,24 +53,19 @@ if Player.Character then
 	setupCharacter(Player.Character)
 end
 
-Player.CharacterAdded:Connect(function(character)
-	setupCharacter(character)
-end)
+Player.CharacterAdded:Connect(setupCharacter)
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoWalkUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.Enabled = false
 ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainPanel"
-MainFrame.Size = COMPACT_SIZE
-MainFrame.Position = COMPACT_POSITION
+MainFrame.Size = UDim2.fromOffset(245, 135)
+MainFrame.Position = UDim2.new(0, 20, 0.5, -67)
 MainFrame.BackgroundColor3 = Color3.fromRGB(17, 20, 28)
 MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
@@ -87,13 +74,13 @@ MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(45, 110, 255)
-MainStroke.Transparency = 0.2
+MainStroke.Transparency = 0.25
 MainStroke.Thickness = 1.2
 MainStroke.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 0, 32)
-Title.Position = UDim2.fromOffset(12, 7)
+Title.Size = UDim2.new(1, -20, 0, 30)
+Title.Position = UDim2.fromOffset(10, 6)
 Title.BackgroundTransparency = 1
 Title.Text = "⚡ AUTO WALK"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -103,8 +90,8 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -24, 0, 20)
-StatusLabel.Position = UDim2.fromOffset(12, 40)
+StatusLabel.Size = UDim2.new(1, -20, 0, 20)
+StatusLabel.Position = UDim2.fromOffset(10, 38)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.TextColor3 = Color3.fromRGB(190, 195, 205)
 StatusLabel.TextSize = 12
@@ -113,13 +100,12 @@ StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatusLabel.Parent = MainFrame
 
 local LocationLabel = StatusLabel:Clone()
-LocationLabel.Name = "LocationLabel"
-LocationLabel.Position = UDim2.fromOffset(12, 61)
+LocationLabel.Position = UDim2.fromOffset(10, 58)
 LocationLabel.Parent = MainFrame
 
 local AutoButton = Instance.new("TextButton")
 AutoButton.Size = UDim2.fromOffset(105, 32)
-AutoButton.Position = UDim2.fromOffset(12, 94)
+AutoButton.Position = UDim2.fromOffset(10, 91)
 AutoButton.BackgroundColor3 = Color3.fromRGB(35, 90, 210)
 AutoButton.BorderSizePixel = 0
 AutoButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -133,7 +119,7 @@ AutoCorner.Parent = AutoButton
 
 local SettingsButton = Instance.new("TextButton")
 SettingsButton.Size = UDim2.fromOffset(110, 32)
-SettingsButton.Position = UDim2.fromOffset(123, 94)
+SettingsButton.Position = UDim2.fromOffset(125, 91)
 SettingsButton.BackgroundColor3 = Color3.fromRGB(35, 38, 48)
 SettingsButton.BorderSizePixel = 0
 SettingsButton.Text = "⚙ Settings"
@@ -147,38 +133,24 @@ SettingsCorner.CornerRadius = UDim.new(0, 7)
 SettingsCorner.Parent = SettingsButton
 
 local SettingsContainer = Instance.new("Frame")
-SettingsContainer.Name = "SettingsContainer"
-SettingsContainer.Size = UDim2.new(1, 0, 1, 0)
-SettingsContainer.Position = UDim2.new(0, 0, 0, 0)
 SettingsContainer.BackgroundTransparency = 1
 SettingsContainer.Visible = false
 SettingsContainer.Parent = MainFrame
 
-local SettingsTitle = Instance.new("TextLabel")
-SettingsTitle.Size = UDim2.new(1, -24, 0, 30)
-SettingsTitle.Position = UDim2.fromOffset(12, 42)
-SettingsTitle.BackgroundTransparency = 1
-SettingsTitle.Text = "KEYBINDS & SETTINGS"
-SettingsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-SettingsTitle.TextSize = 14
-SettingsTitle.Font = Enum.Font.GothamBold
-SettingsTitle.TextXAlignment = Enum.TextXAlignment.Left
-SettingsTitle.Parent = SettingsContainer
+local KeybindToggle = Instance.new("TextButton")
+KeybindToggle.Size = UDim2.fromOffset(250, 34)
+KeybindToggle.Position = UDim2.fromOffset(15, 95)
+KeybindToggle.BackgroundColor3 = Color3.fromRGB(30, 34, 44)
+KeybindToggle.BorderSizePixel = 0
+KeybindToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeybindToggle.TextSize = 12
+KeybindToggle.Font = Enum.Font.Gotham
+KeybindToggle.Parent = SettingsContainer
 
-local SettingsStatus = Instance.new("TextLabel")
-SettingsStatus.Size = UDim2.new(1, -24, 0, 20)
-SettingsStatus.Position = UDim2.fromOffset(12, 70)
-SettingsStatus.BackgroundTransparency = 1
-SettingsStatus.TextColor3 = Color3.fromRGB(150, 160, 175)
-SettingsStatus.TextSize = 11
-SettingsStatus.Font = Enum.Font.Gotham
-SettingsStatus.TextXAlignment = Enum.TextXAlignment.Left
-SettingsStatus.Parent = SettingsContainer
-
-local function createSettingButton(text, y)
+local function createKeyButton(text, y)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -24, 0, 36)
-	button.Position = UDim2.fromOffset(12, y)
+	button.Size = UDim2.fromOffset(250, 34)
+	button.Position = UDim2.fromOffset(15, y)
 	button.BackgroundColor3 = Color3.fromRGB(30, 34, 44)
 	button.BorderSizePixel = 0
 	button.Text = text
@@ -194,16 +166,14 @@ local function createSettingButton(text, y)
 	return button
 end
 
-local KeybindToggle = createSettingButton("Use Keybinds: ON", 98)
-local ToggleKeyButton = createSettingButton("Toggle Key: L", 140)
-local StopKeyButton = createSettingButton("Stop Key: K", 182)
-local SettingsKeyButton = createSettingButton("Settings Key: P", 224)
-local SaveButton = createSettingButton("✓ Apply / Save", 266)
-local BackButton = createSettingButton("← Back", 308)
+local ToggleKeyButton = createKeyButton("Toggle Key: L", 135)
+local StopKeyButton = createKeyButton("Stop Key: K", 175)
+local SettingsKeyButton = createKeyButton("Settings Key: P", 215)
+local SaveButton = createKeyButton("✓ Apply / Save", 255)
+local BackButton = createKeyButton("← Back", 295)
 
 local function notify(message)
 	local notification = Instance.new("TextLabel")
-
 	notification.Size = UDim2.fromOffset(310, 45)
 	notification.Position = UDim2.new(0.5, -155, 0.12, 0)
 	notification.BackgroundColor3 = Color3.fromRGB(18, 21, 29)
@@ -212,7 +182,6 @@ local function notify(message)
 	notification.TextColor3 = Color3.fromRGB(255, 255, 255)
 	notification.TextSize = 14
 	notification.Font = Enum.Font.GothamBold
-	notification.ZIndex = 50
 	notification.Parent = ScreenGui
 
 	local corner = Instance.new("UICorner")
@@ -221,11 +190,10 @@ local function notify(message)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(45, 110, 255)
-	stroke.Thickness = 1
 	stroke.Parent = notification
 
 	task.delay(3, function()
-		if notification and notification.Parent then
+		if notification then
 			notification:Destroy()
 		end
 	end)
@@ -239,18 +207,10 @@ local function updateUI()
 		or Color3.fromRGB(35, 90, 210)
 
 	StatusLabel.Text = "Status: " .. CurrentStatus
-
 	LocationLabel.Text = string.format(
 		"Location: %d / %d",
 		CurrentLocation,
 		#CONFIG.Locations
-	)
-
-	SettingsStatus.Text = string.format(
-		"Auto: %s  •  Location: %d/4  •  %s",
-		Running and "ON" or "OFF",
-		CurrentLocation,
-		CurrentStatus
 	)
 
 	KeybindToggle.Text =
@@ -268,28 +228,21 @@ local function updateUI()
 end
 
 local function setSettingsMode(enabled)
-	if SettingsOpen == enabled then
-		return
-	end
-
 	SettingsOpen = enabled
 
 	if enabled then
 		SettingsContainer.Visible = true
 
-		MainFrame.Size = COMPACT_SIZE
-		MainFrame.Position = COMPACT_POSITION
-
 		TweenService:Create(
 			MainFrame,
 			TweenInfo.new(
-				0.3,
+				0.25,
 				Enum.EasingStyle.Quint,
 				Enum.EasingDirection.Out
 			),
 			{
-				Size = EXPANDED_SIZE,
-				Position = EXPANDED_POSITION
+				Size = UDim2.fromOffset(280, 350),
+				Position = UDim2.new(0.5, -140, 0.5, -175)
 			}
 		):Play()
 	else
@@ -301,14 +254,14 @@ local function setSettingsMode(enabled)
 				Enum.EasingDirection.Out
 			),
 			{
-				Size = COMPACT_SIZE,
-				Position = COMPACT_POSITION
+				Size = UDim2.fromOffset(245, 135),
+				Position = UDim2.new(0, 20, 0.5, -67)
 			}
 		)
 
 		tween:Play()
 
-		tween.Completed:Once(function()
+		task.delay(0.25, function()
 			if not SettingsOpen then
 				SettingsContainer.Visible = false
 			end
@@ -357,7 +310,6 @@ local function equipBlank()
 
 	if Humanoid then
 		Humanoid:EquipTool(tool)
-
 		task.wait(0.2)
 
 		return tool.Parent == Character
@@ -367,36 +319,27 @@ local function equipBlank()
 end
 
 local function checkFinished()
-	if hasBlankTool() then
-		if Finished then
-			Finished = false
-
-			if CurrentStatus == "DONE" then
-				CurrentStatus = "Stopped"
-				updateUI()
-			end
-		end
-
-		return false
-	end
-
 	if Finished then
 		return true
 	end
 
-	Finished = true
-	Running = false
-	MovementToken += 1
-	CurrentStatus = "DONE"
+	if not hasBlankTool() then
+		Finished = true
+		Running = false
+		MovementToken += 1
+		CurrentStatus = "DONE"
 
-	if Humanoid then
-		Humanoid:Move(Vector3.zero)
+		if Humanoid then
+			Humanoid:Move(Vector3.zero)
+		end
+
+		updateUI()
+		notify("DONE! Wala nang Blank tools.")
+
+		return true
 	end
 
-	updateUI()
-	notify("DONE! Wala nang Blank tools.")
-
-	return true
+	return false
 end
 
 local function findPrompt(position)
@@ -481,7 +424,6 @@ local function walkTo(destination, token)
 
 			if (RootPart.Position - destination).Magnitude
 				<= CONFIG.ArrivalDistance then
-
 				return true
 			end
 
@@ -499,7 +441,6 @@ local function walkTo(destination, token)
 		if not Running
 			or Finished
 			or token ~= MovementToken then
-
 			return false
 		end
 
@@ -584,12 +525,15 @@ local function processLocation(index, token)
 end
 
 local function startAutomation()
+	if Finished then
+		notify("Task already completed.")
+		return
+	end
+
 	if not hasBlankTool() then
 		checkFinished()
 		return
 	end
-
-	Finished = false
 
 	if Running then
 		return
@@ -710,6 +654,7 @@ SaveButton.MouseButton1Click:Connect(function()
 		or CONFIG.StopKey == CONFIG.SettingsKey then
 
 		notify("WARNING: Duplicate keybind!")
+
 		return
 	end
 
@@ -739,6 +684,7 @@ UserInputService.InputBegan:Connect(function(input)
 
 		WaitingForKey = nil
 		updateUI()
+
 		return
 	end
 
@@ -746,25 +692,18 @@ UserInputService.InputBegan:Connect(function(input)
 		return
 	end
 
-	if key == CONFIG.SettingsKey then
-		setSettingsMode(not SettingsOpen)
-		return
-	end
-
-	if not SettingsOpen then
-		if key == CONFIG.ToggleKey then
-			if Running then
-				stopAutomation()
-			else
-				startAutomation()
-			end
-			return
-		end
-
-		if key == CONFIG.StopKey then
+	if key == CONFIG.ToggleKey then
+		if Running then
 			stopAutomation()
-			return
+		else
+			startAutomation()
 		end
+
+	elseif key == CONFIG.StopKey then
+		stopAutomation()
+
+	elseif key == CONFIG.SettingsKey then
+		setSettingsMode(not SettingsOpen)
 	end
 end)
 
